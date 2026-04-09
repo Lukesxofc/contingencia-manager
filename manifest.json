@@ -1,0 +1,22 @@
+{
+  "name": "Contingência Manager",
+  "short_name": "Contingência",
+  "description": "Gerenciamento de Perfis, BMs e Contas de Anúncio",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#0b0d11",
+  "theme_color": "#0b0d11",
+  "orientation": "any",
+  "lang": "pt-BR",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Perfis", "short_name": "Perfis", "url": "./index.html#perfis" },
+    { "name": "BMs & Contas", "short_name": "BMs", "url": "./index.html#bms" }
+  ]
+}

@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contingência Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0b0d11;
+      --surface: #12151b;
+      --surface2: #181c24;
+      --border: #1e2330;
+      --border2: #252b38;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --muted2: #3d4a5c;
+      --green: #34d399; --green-bg: #0a2b1e; --green-border: #064e33;
+      --red: #f87171; --red-bg: #2d1212; --red-border: #6b2121;
+      --amber: #fbbf24; --amber-bg: #2a1f00; --amber-border: #6b4a00;
+      --blue: #60a5fa; --blue-bg: #0f2044; --blue-border: #1e4080;
+      --purple: #a78bfa; --purple-bg: #1a1035; --purple-border: #4c3380;
+      --indigo: #818cf8;
+      --mono: 'DM Mono', monospace;
+      --sans: 'Inter', -apple-system, sans-serif;
+      --display: 'Syne', sans-serif;
+    }
+    html { background: var(--bg); }
+    body { font-family: var(--sans); color: var(--text); min-height: 100vh; background: var(--bg); }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+    input, select, button { font-family: var(--sans); }
+    input:focus, select:focus { outline: none; border-color: var(--blue) !important; box-shadow: 0 0 0 2px rgba(96,165,250,0.12); }
+
+    /* ── Layout ── */
+    .app { min-height: 100vh; }
+    .header { border-bottom: 1px solid var(--border); padding: 18px 24px 20px; }
+    .header-top { display: flex; align-items: center; gap: 12px; }
+    .logo { width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .logo-title { font-family: var(--display); font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+    .logo-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; }
+    .stat-value { font-family: var(--mono); font-size: 22px; font-weight: 500; }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 3px; font-weight: 500; }
+
+    /* ── Toolbar ── */
+    .toolbar { padding: 14px 24px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .tabs { display: flex; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+    .tab-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; background: transparent; color: var(--muted); transition: all 0.15s; white-space: nowrap; }
+    .tab-btn.active { background: var(--surface2); color: var(--text); }
+    .search-box { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; flex: 1; min-width: 160px; max-width: 300px; }
+    .search-box input { border: none; background: transparent; color: var(--text); padding: 8px 0; font-size: 13px; width: 100%; }
+    .filter-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 8px 28px 8px 12px; font-size: 12px; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+    .add-btn { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: linear-gradient(135deg, #3b82f6, #6366f1); border: none; border-radius: 8px; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+    /* ── Content ── */
+    .content { padding: 14px 24px 32px; }
+
+    /* ── Input/Select in edit mode ── */
+    .field-input { background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); padding: 6px 10px; font-size: 12px; width: 100%; font-family: var(--mono); }
+    .field-select { background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); padding: 6px 24px 6px 10px; font-size: 12px; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+
+    /* ── Badges ── */
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+    .badge-ativo, .badge-ativa { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+    .badge-restrito { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+    .badge-off { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+    .badge-desativada { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .badge-review { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+
+    /* ── Buttons ── */
+    .btn-icon { background: transparent; border: 1px solid var(--border2); border-radius: 6px; color: var(--muted); padding: 5px 8px; cursor: pointer; display: inline-flex; align-items: center; transition: all 0.1s; }
+    .btn-icon:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+    .btn-icon.save { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+    .btn-copy { background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px; display: inline-flex; transition: color 0.1s; }
+    .btn-copy:hover { color: var(--text); }
+    .btn-eye { background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px; display: inline-flex; transition: color 0.1s; }
+
+    /* ── Table (desktop) ── */
+    .table-wrap { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+    .data-table th { padding: 10px 12px; text-align: left; color: var(--muted); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .data-table td { padding: 10px 12px; border-bottom: 1px solid #0f1218; vertical-align: middle; }
+    .data-table tr:hover td { background: rgba(255,255,255,0.015); }
+    .mono { font-family: var(--mono); }
+
+    /* ── Profile Cards (mobile) ── */
+    .profile-cards { display: none; flex-direction: column; gap: 10px; }
+    .p-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .p-card-head { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .p-card-id { font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; }
+    .p-card-name { font-weight: 600; font-size: 13px; flex: 1; }
+    .p-card-body { border-top: 1px solid var(--border); }
+    .p-card-row { display: flex; align-items: center; padding: 9px 14px; gap: 10px; border-bottom: 1px solid #0e1117; }
+    .p-card-row:last-child { border-bottom: none; }
+    .p-card-lbl { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); width: 90px; flex-shrink: 0; }
+    .p-card-val { font-size: 12px; display: flex; align-items: center; gap: 5px; flex: 1; min-width: 0; word-break: break-all; font-family: var(--mono); }
+    .p-card-footer { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .p-card-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 11px; }
+    .p-card-actions { display: flex; gap: 6px; }
+
+    /* ── BM Cards ── */
+    .bm-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .bm-head { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; gap: 10px; }
+    .bm-head-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+    .bm-avatar { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #8b5cf6, #6366f1); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0; font-family: var(--display); }
+    .bm-info { min-width: 0; }
+    .bm-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bm-id-row { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+    .bm-head-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+    .bm-count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .bm-body { border-top: 1px solid var(--border); }
+    .bm-section { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+    .bm-section:last-child { border-bottom: none; }
+    .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 10px; }
+    .profile-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .profile-tag { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border2); background: transparent; color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; font-family: var(--sans); transition: all 0.15s; }
+    .profile-tag.connected { border-color: var(--green-border); background: var(--green-bg); color: var(--green); }
+    .accounts-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .accounts-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; min-width: 560px; }
+    .accounts-table th { padding: 7px 10px; text-align: left; color: var(--muted); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .accounts-table td { padding: 8px 10px; border-bottom: 1px solid #0e1117; vertical-align: middle; }
+    .accounts-table tr:last-child td { border-bottom: none; }
+    .empty-state { text-align: center; padding: 36px; color: var(--muted2); font-size: 13px; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); }
+
+    /* ── Toast ── */
+    .toast { position: fixed; top: 18px; right: 18px; background: var(--surface2); border: 1px solid var(--border2); color: var(--green); padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 1000; box-shadow: 0 8px 32px rgba(0,0,0,0.4); animation: slideIn 0.25s ease; }
+    @keyframes slideIn { from { transform: translateX(80px); opacity: 0 } to { transform: translateX(0); opacity: 1 } }
+
+    /* ── Chevron ── */
+    .chev { transition: transform 0.2s; display: inline-flex; }
+    .chev.open { transform: rotate(90deg); }
+
+    /* ── Verified chip ── */
+    .verif-yes { color: var(--green); font-size: 11px; font-weight: 700; }
+    .verif-no { color: var(--red); font-size: 11px; font-weight: 700; }
+
+    /* ── ID chip ── */
+    .id-chip-ativo { background: var(--blue-bg); color: var(--blue); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; font-family: var(--mono); }
+    .id-chip-restrito { background: var(--purple-bg); color: var(--purple); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; font-family: var(--mono); }
+
+    /* ── Responsive breakpoints ── */
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .header { padding: 14px 16px 16px; }
+      .toolbar { padding: 12px 16px 0; gap: 8px; }
+      .content { padding: 12px 16px 28px; }
+      .logo-title { font-size: 15px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 14px; }
+      .stat-value { font-size: 18px; }
+      /* Hide desktop table, show cards */
+      .table-wrap { display: none; }
+      .profile-cards { display: flex; }
+      /* Search full width */
+      .search-box { max-width: 100%; flex: 1 1 160px; }
+      .bm-head { padding: 12px 14px; }
+      .bm-section { padding: 12px 14px; }
+      .bm-name { font-size: 13px; }
+    }
+    @media (max-width: 400px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .tab-btn { padding: 8px 10px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+const INITIAL_PROFILES = [
+  { id:"P01", name:"Minh Da", acessoFB:"100083984990639", senhaFB:"@#Luke2005", email:"deborahjenkinsmm1h@gmail.com", senhaEmail:"@#Luke2005", status:"ativo", idVerificada:true, token:"M7ZJG2O4PVLUJTUPGGHAJYEKNCULUSTZ" },
+  { id:"P02", name:"Vicente Caio", acessoFB:"100089649932512", senhaFB:"@#Luke2005", email:"vicentecaiobackup@proton.me", senhaEmail:"@#Luke2005", status:"ativo", idVerificada:true, token:"TXYZ WJEI ZGHD MKW3 5V32 XQY5 LJ7Y CPJG" },
+  { id:"P05", name:"", acessoFB:"", senhaFB:"", email:"", senhaEmail:"", status:"restrito", idVerificada:false, token:"" },
+  { id:"P06", name:"", acessoFB:"", senhaFB:"", email:"", senhaEmail:"", status:"restrito", idVerificada:false, token:"" },
+  { id:"P07", name:"", acessoFB:"", senhaFB:"", email:"", senhaEmail:"", status:"restrito", idVerificada:false, token:"" },
+  { id:"P08", name:"", acessoFB:"", senhaFB:"", email:"", senhaEmail:"", status:"restrito", idVerificada:false, token:"" },
+  { id:"P09", name:"", acessoFB:"", senhaFB:"", email:"", senhaEmail:"", status:"restrito", idVerificada:false, token:"" },
+  { id:"P10", name:"Emmanuel Manya", acessoFB:"61550596231070", senhaFB:"@#Luke2005", email:"oliviagarcia71870@hotmail.com", senhaEmail:"@#Luke2005", status:"restrito", idVerificada:false, token:"" },
+  { id:"P02b", name:"Altamiro Cruz", acessoFB:"61573797275484", senhaFB:"lukemartins2005", email:"altamirocruz@uorak.com", senhaEmail:"lukemartins2005", status:"restrito", idVerificada:true, token:"KPJI H6JA G3NT 3BGR GJOO HSHA EG5F BQC4" },
+];
+
+const INITIAL_BMS = [
+  { id:"BM01", name:"BM Principal", bmId:"", perfisConectados:["P01","P02"], status:"ativa", contas:[
+    { id:"CA01", nome:"Conta Ads 01", contaId:"", status:"ativa", perfilVinculado:"P01", gasto:0, limite:50 },
+  ]},
+];
+
+/* ─── Icons ─── */
+const I = {
+  Users: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  Briefcase: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+  Plus: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>,
+  Trash: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+  Eye: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+  EyeOff: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+  Edit: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>,
+  Check: () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>,
+  Copy: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>,
+  ChevRight: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="m9 18 6-6-6-6"/></svg>,
+  Shield: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  Search: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+};
+
+/* ─── Helpers ─── */
+const StatusBadge = ({ status }) => {
+  const cls = `badge badge-${status}`;
+  const dotColors = { ativo:"#34d399",ativa:"#34d399",restrito:"#f87171",off:"#fbbf24",desativada:"#64748b",review:"#fbbf24" };
+  return <span className={cls}><span className="badge-dot" style={{background: dotColors[status]||"#64748b"}} />{status}</span>;
+};
+
+const CopyBtn = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button className="btn-copy" title="Copiar"
+      onClick={() => { navigator.clipboard.writeText(text).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false),1200); }}>
+      {copied ? <I.Check /> : <I.Copy />}
+    </button>
+  );
+};
+
+const SensitiveField = ({ value }) => {
+  const [show, setShow] = useState(false);
+  if (!value) return <span style={{color:"var(--muted2)"}}>—</span>;
+  return (
+    <span style={{display:"inline-flex",alignItems:"center",gap:4,fontFamily:"var(--mono)",fontSize:"12px"}}>
+      <span>{show ? value : "••••••••"}</span>
+      <button className="btn-eye" onClick={()=>setShow(!show)}>{show ? <I.EyeOff /> : <I.Eye />}</button>
+      {show && <CopyBtn text={value} />}
+    </span>
+  );
+};
+
+/* ─── Main App ─── */
+function App() {
+  const [profiles, setProfiles] = useState(INITIAL_PROFILES);
+  const [bms, setBms] = useState(INITIAL_BMS);
+  const [activeTab, setActiveTab] = useState("perfis");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedBM, setExpandedBM] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(null);
+  const [editingBM, setEditingBM] = useState(null);
+  const [editingConta, setEditingConta] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("todos");
+  const [toast, setToast] = useState(null);
+
+  /* localStorage persistence */
+  useEffect(() => {
+    try { const p = localStorage.getItem("fb-profiles"); if (p) setProfiles(JSON.parse(p)); } catch {}
+    try { const b = localStorage.getItem("fb-bms"); if (b) setBms(JSON.parse(b)); } catch {}
+  }, []);
+
+  const save = useCallback((p, b) => {
+    try { localStorage.setItem("fb-profiles", JSON.stringify(p)); } catch {}
+    try { localStorage.setItem("fb-bms", JSON.stringify(b)); } catch {}
+  }, []);
+
+  const showToast = msg => { setToast(msg); setTimeout(()=>setToast(null), 2500); };
+  const updateProfiles = p => { setProfiles(p); save(p, bms); };
+  const updateBms = b => { setBms(b); save(profiles, b); };
+
+  const stats = {
+    totalPerfis: profiles.length,
+    perfisAtivos: profiles.filter(p=>p.status==="ativo").length,
+    perfisRestritos: profiles.filter(p=>p.status==="restrito").length,
+    totalBMs: bms.length,
+    bmsAtivas: bms.filter(b=>b.status==="ativa").length,
+    totalContas: bms.reduce((a,b)=>a+b.contas.length,0),
+    contasAtivas: bms.reduce((a,b)=>a+b.contas.filter(c=>c.status==="ativa").length,0),
+  };
+
+  const filteredProfiles = profiles.filter(p => {
+    const q = searchTerm.toLowerCase();
+    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || p.email.toLowerCase().includes(q);
+    return matchSearch && (filterStatus==="todos" || p.status===filterStatus);
+  });
+
+  const filteredBMs = bms.filter(b => {
+    const q = searchTerm.toLowerCase();
+    const matchSearch = !q || b.name.toLowerCase().includes(q) || b.bmId.includes(q);
+    return matchSearch && (filterStatus==="todos" || b.status===filterStatus);
+  });
+
+  /* CRUD */
+  const addProfile = () => {
+    const nextNum = Math.max(...profiles.map(p=>parseInt(p.id.replace(/\D/g,""))||0))+1;
+    const np = [...profiles,{id:`P${String(nextNum).padStart(2,"0")}`,name:"",acessoFB:"",senhaFB:"",email:"",senhaEmail:"",status:"restrito",idVerificada:false,token:""}];
+    updateProfiles(np); setEditingProfile(np[np.length-1].id); showToast("Novo perfil adicionado");
+  };
+  const addBM = () => {
+    const nb = [...bms,{id:`BM${String(bms.length+1).padStart(2,"0")}`,name:"",bmId:"",perfisConectados:[],status:"ativa",contas:[]}];
+    updateBms(nb); setEditingBM(nb[nb.length-1].id); setExpandedBM(nb[nb.length-1].id); showToast("Nova BM adicionada");
+  };
+  const addConta = bmId => {
+    const nb = bms.map(b=>{
+      if(b.id!==bmId) return b;
+      const n=b.contas.length+1;
+      return{...b,contas:[...b.contas,{id:`CA${String(n).padStart(2,"0")}`,nome:"",contaId:"",status:"ativa",perfilVinculado:"",gasto:0,limite:50}]};
+    });
+    updateBms(nb); showToast("Conta adicionada");
+  };
+  const updateProfile = (id,field,value) => updateProfiles(profiles.map(p=>p.id===id?{...p,[field]:value}:p));
+  const updateBM = (id,field,value) => updateBms(bms.map(b=>b.id===id?{...b,[field]:value}:b));
+  const updateConta = (bmId,cId,field,value) => updateBms(bms.map(b=>b.id!==bmId?b:{...b,contas:b.contas.map(c=>c.id===cId?{...c,[field]:value}:c)}));
+  const deleteProfile = id => { updateProfiles(profiles.filter(p=>p.id!==id)); showToast("Perfil removido"); };
+  const deleteBM = id => { updateBms(bms.filter(b=>b.id!==id)); showToast("BM removida"); };
+  const deleteConta = (bmId,cId) => { updateBms(bms.map(b=>b.id!==bmId?b:{...b,contas:b.contas.filter(c=>c.id!==cId)})); showToast("Conta removida"); };
+  const togglePerfilBM = (bmId,pId) => updateBms(bms.map(b=>{
+    if(b.id!==bmId) return b;
+    const has=b.perfisConectados.includes(pId);
+    return{...b,perfisConectados:has?b.perfisConectados.filter(x=>x!==pId):[...b.perfisConectados,pId]};
+  }));
+
+  /* ─── Perfil Mobile Card ─── */
+  const ProfileCard = ({p}) => {
+    const isEditing = editingProfile===p.id;
+    const linkedBMs = bms.filter(b=>b.perfisConectados.includes(p.id));
+    return (
+      <div className="p-card">
+        <div className="p-card-head">
+          {isEditing
+            ? <input className="field-input" value={p.name} onChange={e=>updateProfile(p.id,"name",e.target.value)} placeholder="Nome" style={{flex:1}} />
+            : <>
+                <span className={p.status==="ativo"?"id-chip-ativo":"id-chip-restrito"}>{p.id}</span>
+                <span className="p-card-name">{p.name||<span style={{color:"var(--muted2)"}}>Sem nome</span>}</span>
+              </>
+          }
+          {!isEditing && <StatusBadge status={p.status} />}
+          {isEditing && (
+            <select className="field-select" value={p.status} onChange={e=>updateProfile(p.id,"status",e.target.value)}>
+              <option value="ativo">Ativo</option><option value="restrito">Restrito</option><option value="off">Off</option>
+            </select>
+          )}
+        </div>
+        <div className="p-card-body">
+          {[
+            {lbl:"Acesso FB", val:p.acessoFB, field:"acessoFB", copy:true},
+            {lbl:"Senha FB", val:p.senhaFB, field:"senhaFB", sensitive:true},
+            {lbl:"Email", val:p.email, field:"email", copy:true},
+            {lbl:"Senha Email", val:p.senhaEmail, field:"senhaEmail", sensitive:true},
+            {lbl:"Token 2FA", val:p.token, field:"token", sensitive:true},
+          ].map(row => (
+            <div className="p-card-row" key={row.field}>
+              <span className="p-card-lbl">{row.lbl}</span>
+              <span className="p-card-val">
+                {isEditing
+                  ? <input className="field-input" value={row.val} onChange={e=>updateProfile(p.id,row.field,e.target.value)} placeholder={row.lbl} />
+                  : row.sensitive
+                    ? <SensitiveField value={row.val} />
+                    : row.val
+                      ? <><span style={{wordBreak:"break-all"}}>{row.val}</span><CopyBtn text={row.val} /></>
+                      : <span style={{color:"var(--muted2)"}}>—</span>
+                }
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="p-card-footer">
+          <div className="p-card-meta">
+            {isEditing
+              ? <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--muted)"}}>
+                  <input type="checkbox" checked={p.idVerificada} onChange={e=>updateProfile(p.id,"idVerificada",e.target.checked)} style={{accentColor:"#3b82f6"}} />
+                  ID Verificada
+                </label>
+              : <span className={p.idVerificada?"verif-yes":"verif-no"}>ID {p.idVerificada?"✓ Verif.":"✗ Não verif."}</span>
+            }
+            {linkedBMs.map(b=>(
+              <span key={b.id} style={{background:"var(--purple-bg)",color:"var(--purple)",padding:"2px 8px",borderRadius:"4px",fontSize:"10px",fontWeight:600}}>{b.name||b.id}</span>
+            ))}
+          </div>
+          <div className="p-card-actions">
+            {isEditing
+              ? <button className="btn-icon save" onClick={()=>{setEditingProfile(null);showToast("Salvo!");}}><I.Check /></button>
+              : <button className="btn-icon" onClick={()=>setEditingProfile(p.id)}><I.Edit /></button>
+            }
+            <button className="btn-icon" onClick={()=>deleteProfile(p.id)}><I.Trash /></button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ─── Render ─── */
+  return (
+    <div className="app">
+      {toast && <div className="toast">{toast}</div>}
+
+      {/* Header */}
+      <div className="header">
+        <div className="header-top">
+          <div className="logo"><I.Shield /></div>
+          <div>
+            <div className="logo-title">Contingência Manager</div>
+            <div className="logo-sub">Perfis · BMs · Contas de Anúncio</div>
+          </div>
+        </div>
+        <div className="stats-grid">
+          {[
+            {label:"Perfis", value:stats.totalPerfis, sub:`${stats.perfisAtivos} ativos`, color:"#3b82f6"},
+            {label:"Restritos", value:stats.perfisRestritos, sub:"perfis", color:"#f87171"},
+            {label:"BMs", value:stats.totalBMs, sub:`${stats.bmsAtivas} ativas`, color:"#a78bfa"},
+            {label:"Contas Ads", value:stats.totalContas, sub:`${stats.contasAtivas} ativas`, color:"#34d399"},
+          ].map((s,i)=>(
+            <div key={i} className="stat-card">
+              <div className="stat-value" style={{color:s.color}}>{s.value}</div>
+              <div className="stat-label">{s.label} <span style={{color:"var(--muted2)"}}>· {s.sub}</span></div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="toolbar">
+        <div className="tabs">
+          {[{id:"perfis",icon:<I.Users/>,label:"Perfis"},{id:"bms",icon:<I.Briefcase/>,label:"BMs & Contas"}].map(t=>(
+            <button key={t.id} className={`tab-btn${activeTab===t.id?" active":""}`}
+              onClick={()=>{setActiveTab(t.id);setSearchTerm("");setFilterStatus("todos");}}>
+              {t.icon}{t.label}
+            </button>
+          ))}
+        </div>
+        <div className="search-box">
+          <I.Search />
+          <input value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Buscar..." />
+        </div>
+        <select className="filter-select" value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}>
+          <option value="todos">Todos</option>
+          <option value="ativo">Ativo</option><option value="ativa">Ativa</option>
+          <option value="restrito">Restrito</option><option value="off">Off</option><option value="desativada">Desativada</option>
+        </select>
+        <button className="add-btn" onClick={activeTab==="perfis"?addProfile:addBM}>
+          <I.Plus />{activeTab==="perfis"?"Novo Perfil":"Nova BM"}
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="content">
+
+        {/* ── PERFIS TAB ── */}
+        {activeTab==="perfis" && <>
+          {/* Desktop Table */}
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>{["ID","Nome","Acesso FB","Senha FB","Email","Senha Email","Status","ID Verif.","Token 2FA","BMs","Ações"].map(h=>(
+                  <th key={h}>{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody>
+                {filteredProfiles.map(p=>{
+                  const isEditing=editingProfile===p.id;
+                  const linkedBMs=bms.filter(b=>b.perfisConectados.includes(p.id));
+                  return (
+                    <tr key={p.id}>
+                      <td><span className={p.status==="ativo"?"id-chip-ativo":"id-chip-restrito"}>{p.id}</span></td>
+                      <td style={{minWidth:120}}>{isEditing?<input className="field-input" value={p.name} onChange={e=>updateProfile(p.id,"name",e.target.value)} />:<span style={{fontWeight:600}}>{p.name||<span style={{color:"var(--muted2)"}}>—</span>}</span>}</td>
+                      <td className="mono" style={{minWidth:130}}>{isEditing?<input className="field-input" value={p.acessoFB} onChange={e=>updateProfile(p.id,"acessoFB",e.target.value)} />:<span style={{display:"inline-flex",alignItems:"center",gap:4}}>{p.acessoFB||"—"}{p.acessoFB&&<CopyBtn text={p.acessoFB}/>}</span>}</td>
+                      <td>{isEditing?<input className="field-input" value={p.senhaFB} onChange={e=>updateProfile(p.id,"senhaFB",e.target.value)} />:<SensitiveField value={p.senhaFB}/>}</td>
+                      <td style={{minWidth:170}}>{isEditing?<input className="field-input" value={p.email} onChange={e=>updateProfile(p.id,"email",e.target.value)} />:<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11}}>{p.email||"—"}{p.email&&<CopyBtn text={p.email}/>}</span>}</td>
+                      <td>{isEditing?<input className="field-input" value={p.senhaEmail} onChange={e=>updateProfile(p.id,"senhaEmail",e.target.value)} />:<SensitiveField value={p.senhaEmail}/>}</td>
+                      <td>{isEditing?<select className="field-select" value={p.status} onChange={e=>updateProfile(p.id,"status",e.target.value)}><option value="ativo">Ativo</option><option value="restrito">Restrito</option><option value="off">Off</option></select>:<StatusBadge status={p.status}/>}</td>
+                      <td style={{textAlign:"center"}}>{isEditing?<input type="checkbox" checked={p.idVerificada} onChange={e=>updateProfile(p.id,"idVerificada",e.target.checked)} style={{accentColor:"#3b82f6"}}/>:<span className={p.idVerificada?"verif-yes":"verif-no"}>{p.idVerificada?"SIM":"NÃO"}</span>}</td>
+                      <td>{isEditing?<input className="field-input" value={p.token} onChange={e=>updateProfile(p.id,"token",e.target.value)} />:<SensitiveField value={p.token}/>}</td>
+                      <td>{linkedBMs.length>0?linkedBMs.map(b=><span key={b.id} style={{background:"var(--purple-bg)",color:"var(--purple)",padding:"2px 8px",borderRadius:"4px",fontSize:"10px",fontWeight:600,marginRight:4}}>{b.name||b.id}</span>):<span style={{color:"var(--muted2)"}}>—</span>}</td>
+                      <td>
+                        <div style={{display:"flex",gap:4}}>
+                          {isEditing
+                            ?<button className="btn-icon save" onClick={()=>{setEditingProfile(null);showToast("Salvo!");}}><I.Check/></button>
+                            :<button className="btn-icon" onClick={()=>setEditingProfile(p.id)}><I.Edit/></button>
+                          }
+                          <button className="btn-icon" onClick={()=>deleteProfile(p.id)}><I.Trash/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filteredProfiles.length===0&&<div className="empty-state">Nenhum perfil encontrado</div>}
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="profile-cards">
+            {filteredProfiles.map(p=><ProfileCard key={p.id} p={p}/>)}
+            {filteredProfiles.length===0&&<div className="empty-state">Nenhum perfil encontrado</div>}
+          </div>
+        </>}
+
+        {/* ── BMs TAB ── */}
+        {activeTab==="bms" && (
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {filteredBMs.map(bm=>{
+              const isExpanded=expandedBM===bm.id;
+              const isEditingThis=editingBM===bm.id;
+              return (
+                <div key={bm.id} className="bm-card">
+                  {/* BM Header */}
+                  <div className="bm-head" onClick={()=>setExpandedBM(isExpanded?null:bm.id)}>
+                    <div className="bm-head-left">
+                      <span className={`chev${isExpanded?" open":""}`}><I.ChevRight /></span>
+                      <div className="bm-avatar">{bm.id.replace("BM","")}</div>
+                      <div className="bm-info">
+                        {isEditingThis
+                          ? <input className="field-input" value={bm.name} onClick={e=>e.stopPropagation()} onChange={e=>updateBM(bm.id,"name",e.target.value)} placeholder="Nome da BM" style={{fontWeight:700,fontSize:"13px"}} />
+                          : <div className="bm-name">{bm.name||<span style={{color:"var(--muted2)"}}>Sem nome</span>}</div>
+                        }
+                        {bm.bmId&&!isEditingThis&&(
+                          <div className="bm-id-row">
+                            <span style={{fontFamily:"var(--mono)",fontSize:"11px",color:"var(--muted)"}}>{bm.bmId}</span>
+                            <CopyBtn text={bm.bmId}/>
+                          </div>
+                        )}
+                        {isEditingThis&&(
+                          <input className="field-input" value={bm.bmId} onClick={e=>e.stopPropagation()} onChange={e=>updateBM(bm.id,"bmId",e.target.value)} placeholder="ID da BM" style={{marginTop:4,fontSize:"11px"}} />
+                        )}
+                      </div>
+                    </div>
+                    <div className="bm-head-right">
+                      <span className="bm-count">{bm.contas.length}c · {bm.perfisConectados.length}p</span>
+                      {isEditingThis
+                        ? <select className="field-select" value={bm.status} onClick={e=>e.stopPropagation()} onChange={e=>{e.stopPropagation();updateBM(bm.id,"status",e.target.value);}}>
+                            <option value="ativa">Ativa</option><option value="restrito">Restrito</option><option value="off">Off</option><option value="desativada">Desativada</option>
+                          </select>
+                        : <StatusBadge status={bm.status}/>
+                      }
+                      <div style={{display:"flex",gap:4}} onClick={e=>e.stopPropagation()}>
+                        {isEditingThis
+                          ?<button className="btn-icon save" onClick={()=>{setEditingBM(null);showToast("BM salva!");}}><I.Check/></button>
+                          :<button className="btn-icon" onClick={()=>setEditingBM(bm.id)}><I.Edit/></button>
+                        }
+                        <button className="btn-icon" onClick={()=>deleteBM(bm.id)}><I.Trash/></button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* BM Expanded */}
+                  {isExpanded&&(
+                    <div className="bm-body">
+                      {/* Connected Profiles */}
+                      <div className="bm-section">
+                        <div className="section-label">Perfis Conectados</div>
+                        <div className="profile-tags">
+                          {profiles.map(p=>{
+                            const isConn=bm.perfisConectados.includes(p.id);
+                            return(
+                              <button key={p.id} className={`profile-tag${isConn?" connected":""}`} onClick={()=>togglePerfilBM(bm.id,p.id)}>
+                                {isConn&&<I.Check/>}{p.id}{p.name&&` · ${p.name}`}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Ad Accounts */}
+                      <div className="bm-section">
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                          <div className="section-label" style={{marginBottom:0}}>Contas de Anúncio</div>
+                          <button className="add-btn" style={{padding:"4px 12px",fontSize:"11px",borderRadius:"6px"}} onClick={()=>addConta(bm.id)}>
+                            <I.Plus/>Conta
+                          </button>
+                        </div>
+                        {bm.contas.length===0
+                          ? <div style={{textAlign:"center",padding:20,color:"var(--muted2)",fontSize:"12px"}}>Nenhuma conta de anúncio</div>
+                          : <div className="accounts-wrap">
+                              <table className="accounts-table">
+                                <thead>
+                                  <tr>{["Nome","ID da Conta","Status","Perfil","Gasto","Limite","Ações"].map(h=><th key={h}>{h}</th>)}</tr>
+                                </thead>
+                                <tbody>
+                                  {bm.contas.map(c=>{
+                                    const isEditC=editingConta===`${bm.id}-${c.id}`;
+                                    return(
+                                      <tr key={c.id}>
+                                        <td>{isEditC?<input className="field-input" value={c.nome} onChange={e=>updateConta(bm.id,c.id,"nome",e.target.value)} placeholder="Nome"/>:<span style={{fontWeight:600}}>{c.nome||"—"}</span>}</td>
+                                        <td className="mono" style={{fontSize:11}}>{isEditC?<input className="field-input" value={c.contaId} onChange={e=>updateConta(bm.id,c.id,"contaId",e.target.value)} placeholder="act_xxxxx"/>:<span>{c.contaId||"—"}{c.contaId&&<CopyBtn text={c.contaId}/>}</span>}</td>
+                                        <td>{isEditC?<select className="field-select" value={c.status} onChange={e=>updateConta(bm.id,c.id,"status",e.target.value)}><option value="ativa">Ativa</option><option value="off">Off</option><option value="desativada">Desativada</option><option value="review">Review</option></select>:<StatusBadge status={c.status}/>}</td>
+                                        <td>{isEditC
+                                          ?<select className="field-select" value={c.perfilVinculado} onChange={e=>updateConta(bm.id,c.id,"perfilVinculado",e.target.value)}><option value="">—</option>{profiles.map(p=><option key={p.id} value={p.id}>{p.id}·{p.name||"Sem nome"}</option>)}</select>
+                                          :c.perfilVinculado?<span style={{background:"var(--blue-bg)",color:"var(--blue)",padding:"2px 8px",borderRadius:4,fontSize:10,fontWeight:600}}>{c.perfilVinculado}</span>:<span style={{color:"var(--muted2)"}}>—</span>
+                                        }</td>
+                                        <td className="mono">{isEditC?<input type="number" className="field-input" value={c.gasto} onChange={e=>updateConta(bm.id,c.id,"gasto",+e.target.value)} style={{width:70}}/>:`R$${c.gasto}`}</td>
+                                        <td className="mono">{isEditC?<input type="number" className="field-input" value={c.limite} onChange={e=>updateConta(bm.id,c.id,"limite",+e.target.value)} style={{width:70}}/>:`R$${c.limite}`}</td>
+                                        <td>
+                                          <div style={{display:"flex",gap:4}}>
+                                            {isEditC
+                                              ?<button className="btn-icon save" onClick={()=>{setEditingConta(null);showToast("Conta salva!");}}><I.Check/></button>
+                                              :<button className="btn-icon" onClick={()=>setEditingConta(`${bm.id}-${c.id}`)}><I.Edit/></button>
+                                            }
+                                            <button className="btn-icon" onClick={()=>deleteConta(bm.id,c.id)}><I.Trash/></button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                        }
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {filteredBMs.length===0&&<div className="empty-state">Nenhuma BM encontrada</div>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
